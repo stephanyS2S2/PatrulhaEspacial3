@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patrulha Espacial - Jogo de Matemática</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #050515;
+            color: #ffffff;
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 900px;
+            max-height: 1000px;
+            background: linear-gradient(to bottom, #02010a 0%, #080721 60%, #111438 100%);
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            border: 2px solid #1f295d;
+        }
+
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        #earth-container {
+            position: absolute;
+            bottom: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 250px;
+            background: radial-gradient(circle at 50% 0%, #4b9cd3 0%, #1d4e89 40%, #0d2137 70%, transparent 100%);
+            border-radius: 50% 50% 0 0;
+            box-shadow: 0 -20px 50px rgba(75, 156, 211, 0.4);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        #laser-cannon {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            z-index: 3;
+            transition: transform 0.1s ease-out;
+        }
+
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .hud-card {
+            background: rgba(16, 23, 62, 0.85);
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .hud-label {
+            font-size: 14px;
+            color: #93c5fd;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .hud-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .heart {
+            color: #ef4444;
+            font-size: 24px;
+            filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8));
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .heart.lost {
+            opacity: 0.2;
+            filter: none;
+        }
+
+        #ice-power-btn {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: 2px solid #38bdf8;
+            border-radius: 12px;
+            padding: 6px 14px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        #ice-power-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #64748b;
+            box-shadow: none;
+        }
+
+        .meteor {
+            position: absolute;
+            width: 85px;
+            height: 85px;
+            z-index: 4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            will-change: transform, top;
+        }
+
+        .meteor.frozen .meteor-svg {
+            filter: drop-shadow(0 0 15px #38bdf8) hue-rotate(180deg) !important;
+        }
+
+        .meteor-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 12px rgba(255, 100, 0, 0.8));
+        }
+
+        .meteor-number {
+            position: absolute;
+            font-size: 38px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px #000, 0 0 5px #000, 2px 2px 0 #000;
+            z-index: 5;
+        }
+
+        .badge-power {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 22px;
+            z-index: 6;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2); }
+        }
+
+        #controls-panel {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 550px;
+            display: grid;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+        .btn-option {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #38bdf8;
+            border-radius: 20px;
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            padding: 16px 10px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #0284c7, 0 10px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .btn-option:hover {
+            transform: translateY(-2px);
+            border-color: #7dd3fc;
+            box-shadow: 0 8px 0 #0284c7, 0 12px 22px rgba(56, 189, 248, 0.4);
+        }
+
+        .btn-option:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0284c7, 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .laser-beam {
+            position: absolute;
+            width: 8px;
+            background: linear-gradient(to top, #38bdf8, #ffffff, #818cf8);
+            box-shadow: 0 0 15px #38bdf8, 0 0 30px #818cf8;
+            border-radius: 4px;
+            z-index: 3;
+            pointer-events: none;
+            transform-origin: bottom center;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 6;
+            animation: explode 0.6s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 20, 0.94);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        .game-title {
+            font-size: 38px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .game-subtitle {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #93c5fd;
+            font-size: 16px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 2px solid #38bdf8;
+            background: #0f172a;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            font-family: 'Fredoka', sans-serif;
+            outline: none;
+        }
+
+        .mascot-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid #38bdf8;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 520px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .mascot-avatar {
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .dialog-bubble {
+            color: #f8fafc;
+            font-size: 16px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .dialog-bubble strong { color: #38bdf8; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 14px 40px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #166534, 0 10px 25px rgba(34, 197, 94, 0.4);
+            transition: all 0.2s ease;
+            font-family: 'Fredoka', sans-serif;
+            text-transform: uppercase;
+            margin: 5px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 0 #166534, 0 15px 30px rgba(34, 197, 94, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            padding: 12px 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #1e293b;
+            transition: all 0.2s ease;
+            font-family: 'Fredoka', sans-serif;
+            margin: 5px;
+        }
+
+        .score-board {
+            background: rgba(30, 41, 59, 0.9);
+            border: 2px solid #38bdf8;
+            border-radius: 20px;
+            padding: 25px 50px;
+            margin: 20px 0 25px 0;
+            display: flex;
+            gap: 40px;
+        }
+
+        .score-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-stat-title {
+            font-size: 16px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .score-stat-value {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.3);
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="stars-layer"></div>
+        <div id="damage-overlay"></div>
+
+        <div id="hud">
+            <div class="hud-card">
+                <span class="hud-label">Fase:</span>
+                <span id="phase-display" class="hud-value">1</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">Meteoro:</span>
+                <span id="meteor-count-display" class="hud-value">1/15</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-label">Vidas:</span>
+                <div id="lives-container" style="display: flex; gap: 4px;">
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                    <span class="heart">❤️</span>
+                </div>
+            </div>
+            <button id="ice-power-btn" onclick="activateIcePower()" disabled>
+                ❄️ Congelar (<span id="ice-count">0</span>)
+            </button>
+        </div>
+
+        <div id="laser-cannon">
+            <svg viewBox="0 0 60 60" width="100%" height="100%">
+                <path d="M 20 50 L 30 10 L 40 50 Z" fill="#38bdf8" />
+                <rect x="25" y="45" width="10" height="15" fill="#0284c7" />
+                <circle cx="30" cy="15" r="5" fill="#60a5fa" />
+            </svg>
+        </div>
+
+        <div id="earth-container"></div>
+        <div id="controls-panel" class="grid-3"></div>
+
+        <!-- TELA 1: Início -->
+        <div id="start-screen" class="overlay">
+            <h1 class="game-title">Patrulha Espacial</h1>
+            <p class="game-subtitle">Missão de Defesa Numérica</p>
+            
+            <div class="input-group">
+                <label for="player-name">Digite seu nome, Comandante:</label>
+                <input type="text" id="player-name" class="input-field" placeholder="Seu Nome" maxlength="15" value="Recruta">
+            </div>
+
+            <button class="btn-primary" onclick="proceedToIntro()">Iniciar Missão</button>
+        </div>
+
+        <!-- TELA 2: Apresentação -->
+        <div id="intro-screen" class="overlay hidden">
+            <div class="mascot-container">
+                <svg class="mascot-avatar" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="#38bdf8" opacity="0.15"/>
+                    <circle cx="50" cy="45" r="28" fill="#e2e8f0"/>
+                    <path d="M 28 45 Q 50 22 72 45 A 28 28 0 0 1 28 45" fill="#0284c7"/>
+                    <rect x="34" y="38" width="32" height="14" rx="7" fill="#0f172a"/>
+                    <circle cx="42" cy="45" r="2.5" fill="#38bdf8"/>
+                    <circle cx="58" cy="45" r="2.5" fill="#38bdf8"/>
+                    <path d="M 32 72 Q 50 88 68 72 Z" fill="#f8fafc"/>
+                </svg>
+                <div class="dialog-bubble">
+                    <strong>Atenção, <span id="intro-player-name">Comandante</span>!</strong><br>
+                    A Terra está prestes a ser atingida por meteoros! Para destruí-los, resolva as somas corretamente. <br><br>
+                    Podemos fazer um rápido treinamento antes da batalha real!
+                </div>
+            </div>
+
+            <div>
+                <button class="btn-primary" onclick="startTutorial()">Fazer Tutorial</button>
+                <button class="btn-secondary" onclick="skipTutorial()">Pular Tutorial</button>
+            </div>
+        </div>
+
+        <!-- TELA 3: Transição de Fase -->
+        <div id="phase-start-screen" class="overlay hidden">
+            <h1 class="game-title">Fase <span id="start-phase-num">1</span></h1>
+            <p class="game-subtitle">Prepare seus sistemas de defesa!</p>
+            
+            <div class="mascot-container" style="max-width: 400px; justify-content: center; text-align: center;">
+                <p id="phase-description" style="font-size: 18px; color: #f8fafc;">
+                    15 Meteoros se aproximando!
+                </p>
+            </div>
+
+            <button class="btn-primary" onclick="beginPhase()">Iniciar Fase</button>
+        </div>
+
+        <!-- TELA 4: Encerramento -->
+        <div id="game-over-screen" class="overlay hidden">
+            <h1 id="end-title" class="game-title">Missão Concluída!</h1>
+            <p id="end-subtitle" class="game-subtitle">Relatório final de desempenho emitido.</p>
+
+            <div class="score-board">
+                <div class="score-stat">
+                    <span class="score-stat-title">Acertos</span>
+                    <span id="final-hits" class="score-stat-value" style="color: #22c55e;">0</span>
+                </div>
+                <div class="score-stat">
+                    <span class="score-stat-title">Erros</span>
+                    <span id="final-misses" class="score-stat-value" style="color: #ef4444;">0</span>
+                </div>
+            </div>
+
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">
+                Um relatório detalhado (CSV) foi baixado automaticamente.
+            </p>
+
+            <button class="btn-primary" onclick="resetToMainMenu()">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                console.log("Audio not supported or blocked");
+            }
+        }
+
+        function playSound(type) {
+            try {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'laser') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'explosion') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'wrong') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.setValueAtTime(110, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'earth_hit') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(90, now);
+                    osc.frequency.exponentialRampToValueAtTime(20, now + 0.4);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'powerup') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.25);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                // Silently catch audio errors
+            }
+        }
+
+        const PHASE_CONFIGS = {
+            1: { a: 0.25, vm: 6.0, optionsCount: 3, iceMeteorCount: 0, lifeMeteorCount: 0 },
+            2: { a: 0.40, vm: 5.0, optionsCount: 3, iceMeteorCount: 1, lifeMeteorCount: 0 },
+            3: { a: 0.50, vm: 4.0, optionsCount: 3, iceMeteorCount: 0, lifeMeteorCount: 1 },
+            4: { a: 0.50, vm: 3.5, optionsCount: 2, iceMeteorCount: 1, lifeMeteorCount: 1 },
+            5: { a: 0.60, vm: 3.5, optionsCount: 2, iceMeteorCount: 1, lifeMeteorCount: 1 }
+        };
+
+        const VI = 7.0;
+        const METEORS_PER_PHASE = 15;
+
+        let playerName = "Recruta";
+        let currentPhase = 1;
+        let lives = 3;
+        let icePowersCount = 0;
+        let isFrozen = false;
+        let freezeTimer = null;
+
+        let currentMeteorIndex = 0;
+        let activeMeteor = null;
+        let gameLoopInterval = null;
+        let isGameRunning = false;
+        let isTutorialMode = false;
+        let currentOptions = [];
+
+        let totalHits = 0;
+        let totalMisses = 0;
+        let gameStartTime = 0;
+        let meteorSpawnTime = 0;
+        let gameLogs = [];
+        let specialMeteorsPlan = [];
+
+        function createStars() {
+            const container = document.getElementById('stars-layer');
+            container.innerHTML = '';
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                container.appendChild(star);
+            }
+        }
+        createStars();
+
+        function proceedToIntro() {
+            initAudio(); // Ativa o áudio com o clique do usuário
+            const input = document.getElementById('player-name').value.trim();
+            if (input !== "") playerName = input;
+            document.getElementById('intro-player-name').innerText = playerName;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('intro-screen').classList.remove('hidden');
+        }
+
+        function startTutorial() {
+            isTutorialMode = true;
+            document.getElementById('intro-screen').classList.add('hidden');
+            currentPhase = 1;
+            lives = 3;
+            icePowersCount = 1;
+            updateHUD();
+
+            alert("TUTORIAL:\n1. Observe a conta do meteoro.\n2. Clique na opção com o resultado correto.\n3. Use o botão 'Congelar' para paralisar o meteoro por 4 segundos se precisar!");
+            setupPhase();
+        }
+
+        function skipTutorial() {
+            isTutorialMode = false;
+            document.getElementById('intro-screen').classList.add('hidden');
+            currentPhase = 1;
+            lives = 3;
+            icePowersCount = 0;
+            totalHits = 0;
+            totalMisses = 0;
+            gameLogs = [];
+            gameStartTime = Date.now();
+            
+            showPhaseStartScreen();
+        }
+
+        function showPhaseStartScreen() {
+            document.getElementById('start-phase-num').innerText = currentPhase;
+            document.getElementById('phase-description').innerText = `Fase ${currentPhase}: 15 Meteoros se aproximando!`;
+            document.getElementById('phase-start-screen').classList.remove('hidden');
+        }
+
+        function beginPhase() {
+            document.getElementById('phase-start-screen').classList.add('hidden');
+            setupPhase();
+        }
+
+        function setupPhase() {
+            currentMeteorIndex = 0;
+            activeMeteor = null;
+            isGameRunning = true;
+            updateHUD();
+
+            const config = PHASE_CONFIGS[currentPhase] || PHASE_CONFIGS[1];
+            specialMeteorsPlan = new Array(METEORS_PER_PHASE).fill(null);
+
+            let availableIndices = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+            availableIndices.sort(() => Math.random() - 0.5);
+
+            if (config.iceMeteorCount > 0) {
+                specialMeteorsPlan[availableIndices.pop()] = 'ice';
+            }
+            if (config.lifeMeteorCount > 0) {
+                specialMeteorsPlan[availableIndices.pop()] = 'life';
+            }
+
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(gameLoop, 50);
+
+            spawnNextMeteor();
+        }
+
+        function calculateVf(x) {
+            const config = PHASE_CONFIGS[currentPhase] || PHASE_CONFIGS[1];
+            let vf = VI - config.a * (x - 1);
+            if (vf < config.vm) vf = config.vm;
+            return vf;
+        }
+
+        function spawnNextMeteor() {
+            if (!isGameRunning) return;
+
+            currentMeteorIndex++;
+
+            if (currentMeteorIndex > METEORS_PER_PHASE) {
+                if (isTutorialMode) {
+                    alert("Tutorial Concluído! Agora a batalha real vai começar!");
+                    skipTutorial();
+                } else if (currentPhase < 5) {
+                    currentPhase++;
+                    showPhaseStartScreen();
+                } else {
+                    finishGame(true);
+                }
+                return;
+            }
+
+            updateHUD();
+
+            const vf = calculateVf(currentMeteorIndex);
+            const targetValue = Math.floor(Math.random() * 10) + 1;
+            const specialType = specialMeteorsPlan[currentMeteorIndex - 1];
+
+            const posX = Math.floor(Math.random() * 70) + 10;
+            const container = document.getElementById('game-container');
+
+            const meteorEl = document.createElement('div');
+            meteorEl.className = 'meteor';
+            meteorEl.style.left = `${posX}%`;
+            meteorEl.style.top = `-100px`;
+
+            let badgeHTML = '';
+            if (specialType === 'ice') badgeHTML = '<div class="badge-power">❄️</div>';
+            if (specialType === 'life') badgeHTML = '<div class="badge-power">❤️</div>';
+
+            meteorEl.innerHTML = `
+                <svg class="meteor-svg" viewBox="0 0 100 100">
+                    <defs>
+                        <radialGradient id="grad-${currentMeteorIndex}" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ffedd5"/>
+                            <stop offset="40%" stop-color="#f97316"/>
+                            <stop offset="80%" stop-color="#c2410c"/>
+                            <stop offset="100%" stop-color="#451a03"/>
+                        </radialGradient>
+                    </defs>
+                    <path d="M 30 20 Q 50 -30 70 20 Q 80 50 50 90 Q 20 50 30 20 Z" fill="#ef4444" opacity="0.6"/>
+                    <path d="M 35 25 Q 50 -10 65 25 Q 70 50 50 80 Q 30 50 35 25 Z" fill="#f97316"/>
+                    <circle cx="50" cy="55" r="35" fill="url(#grad-${currentMeteorIndex})"/>
+                </svg>
+                <div class="meteor-number">${targetValue}</div>
+                ${badgeHTML}
+            `;
+
+            container.appendChild(meteorEl);
+
+            activeMeteor = {
+                element: meteorEl,
+                value: targetValue,
+                vf: vf,
+                special: specialType,
+                posY: -100,
+                startTime: Date.now(),
+                duration: vf * 1000
+            };
+
+            meteorSpawnTime = Date.now();
+            generateControlButtons(targetValue);
+        }
+
+        function generateAdditionFact(targetResult = null) {
+            let result = targetResult !== null ? targetResult : Math.floor(Math.random() * 10) + 1;
+            let num1 = Math.floor(Math.random() * (result + 1));
+            let num2 = result - num1;
+            return { text: `${num1} + ${num2}`, value: result };
+        }
+
+        function generateControlButtons(correctValue) {
+            const config = PHASE_CONFIGS[currentPhase] || PHASE_CONFIGS[1];
+            const optionsCount = config.optionsCount;
+
+            const correctAnswer = generateAdditionFact(correctValue);
+            const options = [correctAnswer];
+
+            while (options.length < optionsCount) {
+                const wrongFact = generateAdditionFact();
+                if (wrongFact.value !== correctValue && !options.some(o => o.text === wrongFact.text)) {
+                    options.push(wrongFact);
+                }
+            }
+
+            options.sort(() => Math.random() - 0.5);
+            currentOptions = options;
+
+            const panel = document.getElementById('controls-panel');
+            panel.className = optionsCount === 2 ? 'grid-2' : 'grid-3';
+            panel.innerHTML = '';
+
+            options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt.text;
+                btn.onclick = () => checkAnswer(idx);
+                panel.appendChild(btn);
+            });
+        }
+
+        function gameLoop() {
+            if (!isGameRunning || !activeMeteor) return;
+
+            const containerHeight = window.innerHeight;
+            const earthImpactY = containerHeight - 120;
+
+            if (!isFrozen) {
+                const elapsed = Date.now() - activeMeteor.startTime;
+                const progress = elapsed / activeMeteor.duration;
+                activeMeteor.posY = -100 + (progress * (earthImpactY + 100));
+                activeMeteor.element.style.transform = `translateY(${activeMeteor.posY + 100}px)`;
+            }
+
+            if (activeMeteor.posY >= earthImpactY) {
+                handleEarthImpact();
+            }
+        }
+
+        function checkAnswer(selectedIndex) {
+            if (!isGameRunning || !activeMeteor) return;
+
+            const selectedFact = currentOptions[selectedIndex];
+            const responseTimeSec = ((Date.now() - meteorSpawnTime) / 1000).toFixed(2);
+            const isCorrect = (selectedFact.value === activeMeteor.value);
+
+            if (!isTutorialMode) {
+                gameLogs.push({
+                    phase: currentPhase,
+                    meteorNum: currentMeteorIndex,
+                    targetValue: activeMeteor.value,
+                    vfSeconds: activeMeteor.vf,
+                    responseTimeSec: responseTimeSec,
+                    result: isCorrect ? 'ACERTO' : 'ERRO'
+                });
+            }
+
+            if (isCorrect) {
+                totalHits++;
+                fireLaser(activeMeteor, () => {
+                    if (activeMeteor.special === 'ice') {
+                        icePowersCount++;
+                        playSound('powerup');
+                    } else if (activeMeteor.special === 'life') {
+                        if (lives < 3) lives++;
+                        playSound('powerup');
+                    }
+
+                    destroyCurrentMeteor();
+                    spawnNextMeteor();
+                });
+            } else {
+                totalMisses++;
+                playSound('wrong');
+                lives--;
+                updateHUD();
+                flashDamageScreen();
+
+                if (lives <= 0) {
+                    finishGame(false);
+                }
+            }
+        }
+
+        function fireLaser(meteor, callback) {
+            playSound('laser');
+            const cannon = document.getElementById('laser-cannon');
+            const cannonRect = cannon.getBoundingClientRect();
+            const meteorRect = meteor.element.getBoundingClientRect();
+
+            const startX = cannonRect.left + cannonRect.width / 2;
+            const startY = cannonRect.top;
+            const endX = meteorRect.left + meteorRect.width / 2;
+            const endY = meteorRect.top + meteorRect.height / 2;
+
+            const angle = Math.atan2(endX - startX, -(endY - startY)) * (180 / Math.PI);
+            cannon.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+            const laser = document.createElement('div');
+            laser.className = 'laser-beam';
+            const distance = Math.hypot(endX - startX, endY - startY);
+
+            laser.style.height = `${distance}px`;
+            laser.style.left = `${startX}px`;
+            laser.style.top = `${startY - distance}px`;
+            laser.style.transformOrigin = 'bottom center';
+            laser.style.transform = `rotate(${angle}deg)`;
+
+            document.getElementById('game-container').appendChild(laser);
+
+            setTimeout(() => {
+                laser.remove();
+                cannon.style.transform = `translateX(-50%) rotate(0deg)`;
+                createExplosion(endX, endY);
+                playSound('explosion');
+                if (callback) callback();
+            }, 120);
+        }
+
+        function createExplosion(x, y) {
+            const container = document.getElementById('game-container');
+            const colors = ['#f97316', '#ef4444', '#fbbf24', '#ffffff'];
+
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 8 + 4;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 80 + 20;
+                particle.style.setProperty('--dx', `${Math.cos(angle) * speed}px`);
+                particle.style.setProperty('--dy', `${Math.sin(angle) * speed}px`);
+
+                container.appendChild(particle);
+                setTimeout(() => particle.remove(), 600);
+            }
+        }
+
+        function handleEarthImpact() {
+            playSound('earth_hit');
+            totalMisses++;
+
+            if (!isTutorialMode) {
+                gameLogs.push({
+                    phase: currentPhase,
+                    meteorNum: currentMeteorIndex,
+                    targetValue: activeMeteor.value,
+                    vfSeconds: activeMeteor.vf,
+                    responseTimeSec: activeMeteor.vf,
+                    result: 'COLISAO_TERRA'
+                });
+            }
+
+            const rect = activeMeteor.element.getBoundingClientRect();
+            createExplosion(rect.left + 40, window.innerHeight - 100);
+
+            destroyCurrentMeteor();
+            lives--;
+            updateHUD();
+            flashDamageScreen();
+
+            if (lives <= 0) {
+                finishGame(false);
+            } else {
+                spawnNextMeteor();
+            }
+        }
+
+        function flashDamageScreen() {
+            const overlay = document.getElementById('damage-overlay');
+            overlay.style.opacity = '1';
+            setTimeout(() => overlay.style.opacity = '0', 200);
+        }
+
+        function destroyCurrentMeteor() {
+            if (activeMeteor && activeMeteor.element) {
+                activeMeteor.element.remove();
+            }
+            activeMeteor = null;
+        }
+
+        function activateIcePower() {
+            if (icePowersCount <= 0 || isFrozen || !activeMeteor) return;
+
+            icePowersCount--;
+            isFrozen = true;
+            updateHUD();
+
+            activeMeteor.element.classList.add('frozen');
+            playSound('powerup');
+
+            freezeTimer = setTimeout(() => {
+                isFrozen = false;
+                if (activeMeteor && activeMeteor.element) {
+                    activeMeteor.element.classList.remove('frozen');
+                    activeMeteor.startTime += 4000;
+                }
+            }, 4000);
+        }
+
+        function updateHUD() {
+            document.getElementById('phase-display').innerText = currentPhase;
+            document.getElementById('meteor-count-display').innerText = `${currentMeteorIndex}/${METEORS_PER_PHASE}`;
+            
+            const hearts = document.querySelectorAll('.heart');
+            hearts.forEach((h, i) => {
+                if (i < lives) h.classList.remove('lost');
+                else h.classList.add('lost');
+            });
+
+            document.getElementById('ice-count').innerText = icePowersCount;
+            document.getElementById('ice-power-btn').disabled = (icePowersCount <= 0 || isFrozen);
+        }
+
+        function finishGame(isVictory) {
+            isGameRunning = false;
+            clearInterval(gameLoopInterval);
+            destroyCurrentMeteor();
+
+            document.getElementById('final-hits').innerText = totalHits;
+            document.getElementById('final-misses').innerText = totalMisses;
+
+            const endTitle = document.getElementById('end-title');
+            if (isVictory) {
+                endTitle.innerText = "Vitória Espacial!";
+                endTitle.style.color = "#22c55e";
+            } else {
+                endTitle.innerText = "Fim de Jogo!";
+                endTitle.style.color = "#ef4444";
+            }
+
+            document.getElementById('game-over-screen').classList.remove('hidden');
+
+            if (!isTutorialMode) {
+                downloadCSVReport();
+            }
+        }
+
+        function downloadCSVReport() {
+            const totalGameTimeSec = ((Date.now() - gameStartTime) / 1000).toFixed(1);
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "RELATORIO DE DESEMPENHO - PATRULHA ESPACIAL\n";
+            csvContent += `Jogador,${playerName}\n`;
+            csvContent += `Tempo Total de Jogo (s),${totalGameTimeSec}\n`;
+            csvContent += `Total de Acertos,${totalHits}\n`;
+            csvContent += `Total de Erros,${totalMisses}\n\n`;
+            
+            csvContent += "Fase,Meteoro_Num,Numero_Meteoro,Velocidade_Queda_vf_s,Tempo_Resposta_s,Resultado\n";
+
+            gameLogs.forEach(log => {
+                csvContent += `${log.phase},${log.meteorNum},${log.targetValue},${log.vfSeconds},${log.responseTimeSec},${log.result}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Relatorio_PatrulhaEspacial_${playerName}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function resetToMainMenu() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
